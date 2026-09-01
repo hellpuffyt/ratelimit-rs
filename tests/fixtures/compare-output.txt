@@ -1,0 +1,35 @@
+quota: 10 permits per second
+emission interval: 100ms
+
+== burst across a window boundary ==
+(ask for 10 at t=0.9s, then 10 more at t=1.0s — 100 ms apart)
+
+  token bucket     11 permits inside one second
+  gcra             11 permits inside one second
+  sliding window   10 permits inside one second
+  fixed window     20 permits inside one second
+
+== permits available after exhaustion at t=0 ==
+  elapsed   bucket  gcra  sliding  fixed
+      0ns        0     0        0      0
+    100ms        1     1        0      0
+    200ms        2     2        0      0
+    300ms        3     3        0      0
+    400ms        4     4        0      0
+    500ms        5     5        0      0
+    600ms        6     6        0      0
+    700ms        7     7        0      0
+    800ms        8     8        0      0
+    900ms        9     9        0      0
+       1s       10    10        0     10
+
+== one request every 100 ms for 10 seconds ==
+  token bucket     100 of 100 allowed
+  gcra             100 of 100 allowed
+  sliding window    95 of 100 allowed
+  fixed window     100 of 100 allowed
+
+(the sliding window is the odd one out, and this is its real cost:
+ traffic at exactly the permitted rate loses one request per window,
+ because the weighted estimate assumes the previous window's permits
+ were spread evenly through it. It errs towards refusing.)

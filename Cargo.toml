@@ -1,0 +1,29 @@
+[package]
+name = "ratelimit-rs"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+description = "Token bucket, GCRA, sliding window and fixed window rate limiters with an injectable clock, and no runtime dependencies."
+readme = "README.md"
+repository = "https://github.com/hellpuffyt/ratelimit-rs"
+homepage = "https://github.com/hellpuffyt/ratelimit-rs"
+documentation = "https://docs.rs/ratelimit-rs"
+keywords = ["rate-limit", "throttle", "gcra", "token-bucket", "sliding-window"]
+categories = ["algorithms", "concurrency", "network-programming"]
+exclude = ["/.github"]
+
+[lib]
+name = "ratelimit"
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+
+[[example]]
+name = "compare"
+path = "examples/compare.rs"
+
+[profile.release]
+opt-level = 3
