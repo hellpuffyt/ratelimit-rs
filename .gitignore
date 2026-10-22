@@ -12,3 +12,7 @@ Cargo.lock
 .idea/
 .DS_Store
 Thumbs.db
+
+# Coverage / local env
+*.profraw
+.env*
