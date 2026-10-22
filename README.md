@@ -1,14 +1,19 @@
 # ratelimit-rs
 
 [![CI](https://github.com/hellpuffyt/ratelimit-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/hellpuffyt/ratelimit-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/ratelimit-rs.svg)](https://crates.io/crates/ratelimit-rs)
 
 Four rate limiters — token bucket, GCRA, sliding window and fixed window — sharing one `Quota` type and one injectable `Clock`, with no runtime dependencies.
 
+This crate is **not published on crates.io** — the name `ratelimit-rs`
+there belongs to an unrelated project, so `ratelimit-rs = "0.1"` would
+fetch someone else's code. Depend on this repository directly:
+
 ```toml
 [dependencies]
-ratelimit-rs = "0.1"
+ratelimit-rs = { git = "https://github.com/hellpuffyt/ratelimit-rs" }
 ```
+
+The library is imported as `ratelimit`.
 
 ```rust
 use std::time::Duration;
@@ -55,7 +60,7 @@ crate is built specifically to avoid:
    by one unit. Every limiter here reads time through a `Clock` trait; tests
    drive a `ManualClock` and advance it by exact `Duration`s — including
    `Duration::from_nanos(1)` — so a boundary condition is asserted exactly,
-   and the full 151-test suite runs in milliseconds with zero flakiness from
+   and the full test suite runs in well under a second with zero flakiness from
    the OS scheduler.
 
 3. **"It compiles and doesn't panic" is not correctness for a rate limiter.**
@@ -85,8 +90,8 @@ choosing between them:
 | --- | --- | --- | --- | --- |
 | `TokenBucket` | `burst`, tunable | one permit every `period / count` | `burst + count` | 16 bytes |
 | `Gcra` | `burst`, tunable | one permit every `period / count` | `burst + count` | 8 bytes |
-| `SlidingWindow` | `count` | released continuously as the old window ages out | under `2 * count` | 12 bytes |
-| `FixedWindow` | `count` | nothing, then all of it at the boundary | `2 * count` | 12 bytes |
+| `SlidingWindow` | `count` | released continuously as the old window ages out | `2 * count` if a burst is aimed at the end of a window, less otherwise | 16 bytes |
+| `FixedWindow` | `count` | nothing, then all of it at the boundary | `2 * count` | 16 bytes (12 + padding) |
 
 - **`TokenBucket`** — the default. Absorbs the bursts real clients produce
   while holding the average, and `burst` is a dial you can set independently
@@ -212,12 +217,24 @@ return byte-identical decisions — including the exact `retry_after` on every
 refusal — for any clock that keeps the documented monotonic contract, and
 shows exactly where that equivalence breaks (a clock that goes backwards).
 
+`tests/properties.rs` adds randomized property tests over reproducible
+seeds: every limiter is checked against an independent reference model
+(the window models recompute their counts from a full log of grants),
+every `retry_after` is checked to be exact (waiting that long succeeds,
+one nanosecond less does not), a clock that steps backwards is checked
+never to mint permits, and quotas and clock readings at the extremes of
+the `u64` nanosecond range are checked never to overflow or fail open.
+
 Run it yourself:
 
 ```
 $ cargo test --all-targets
-running 151 tests ... test result: ok. 151 passed; 0 failed
+$ cargo test --doc
 ```
+
+At the time of the last audit that was 171 passing tests across the
+unit/integration targets plus 12 doctests, 0 failed, 0 ignored (see
+[`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md)).
 
 ## No dependencies
 
@@ -230,6 +247,25 @@ was supposed to be your first line of defense.
 ## MSRV
 
 Rust 1.70, checked in CI.
+
+## Limitations
+
+- GCRA cannot represent a schedule that runs past `u64::MAX` nanoseconds
+  of its clock (over 584 years after the clock's epoch). A request whose
+  schedule would end there is refused with `retry_after: Duration::MAX`
+  rather than admitted — it fails closed. `SystemClock` starts at zero
+  when created, so this only concerns custom clocks with a far-future
+  epoch.
+- A clock that steps backwards is absorbed, never rewarded: the bucket
+  and GCRA ignore the lost time, and the window limiters stay in the
+  latest window they have seen (the sliding window charges the previous
+  window as if at the start of that window). `retry_after` values given
+  while the clock is behind are measured from the backwards reading.
+- `Shared` is a plain `Mutex`; there is no lock-free variant.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 
 ## License
 

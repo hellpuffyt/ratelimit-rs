@@ -8,7 +8,6 @@ description = "Token bucket, GCRA, sliding window and fixed window rate limiters
 readme = "README.md"
 repository = "https://github.com/hellpuffyt/ratelimit-rs"
 homepage = "https://github.com/hellpuffyt/ratelimit-rs"
-documentation = "https://docs.rs/ratelimit-rs"
 keywords = ["rate-limit", "throttle", "gcra", "token-bucket", "sliding-window"]
 categories = ["algorithms", "concurrency", "network-programming"]
 exclude = ["/.github"]

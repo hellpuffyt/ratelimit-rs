@@ -123,8 +123,15 @@ impl<C: Clock> FixedWindow<C> {
 
     /// How long until the current window ends.
     pub fn window_remaining(&self) -> Duration {
-        let period = self.quota.period_nanos();
-        Duration::from_nanos(period - (self.clock.now_nanos() % period))
+        let period = u128::from(self.quota.period_nanos());
+        let now = u128::from(self.clock.now_nanos());
+        // Measured to the end of the window the counter belongs to, which
+        // is the current reading's window unless the clock went
+        // backwards. In u128 because the end of the last window can lie
+        // beyond `u64::MAX`.
+        let index = (now / period).max(u128::from(self.window_index));
+        let remaining = (index + 1) * period - now;
+        Duration::from_nanos(u64::try_from(remaining).unwrap_or(u64::MAX))
     }
 
     /// Moves to the current window, clearing the counter if it changed.
@@ -133,9 +140,14 @@ impl<C: Clock> FixedWindow<C> {
     /// no difference, because a fixed window keeps no history at all.
     /// That absence of history is exactly what
     /// [`SlidingWindow`](crate::SlidingWindow) adds.
+    ///
+    /// A reading from an *earlier* window (a clock that went backwards)
+    /// is ignored rather than treated as a new window: resetting the
+    /// counter there would hand out a fresh budget for time that has
+    /// already been spent.
     fn roll(&mut self) {
         let index = self.clock.now_nanos() / self.quota.period_nanos();
-        if index != self.window_index {
+        if index > self.window_index {
             self.window_index = index;
             self.used = 0;
         }

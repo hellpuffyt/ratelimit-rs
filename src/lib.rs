@@ -27,8 +27,8 @@
 //! | --- | --- | --- | --- | --- |
 //! | [`TokenBucket`] | `burst`, tunable | one permit every `period / count` | `burst + count` | 16 bytes |
 //! | [`Gcra`] | `burst`, tunable | one permit every `period / count` | `burst + count` | 8 bytes |
-//! | [`SlidingWindow`] | `count` | released continuously as the old window ages out | under `2 * count` | 12 bytes |
-//! | [`FixedWindow`] | `count` | nothing, then all of it at the boundary | `2 * count` | 12 bytes |
+//! | [`SlidingWindow`] | `count` | released continuously as the old window ages out | `2 * count` if a burst is aimed at the end of a window, less otherwise | 16 bytes |
+//! | [`FixedWindow`] | `count` | nothing, then all of it at the boundary | `2 * count` | 16 bytes (12 + padding) |
 //!
 //! Every number in that table is asserted by a test rather than
 //! reasoned about in prose — see `tests/comparison.rs`, which drives all

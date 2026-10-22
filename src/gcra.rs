@@ -165,10 +165,12 @@ impl<C: Clock> Gcra<C> {
     fn delay_for(&self, permits: u32) -> Duration {
         let now = self.clock.now_nanos();
         let tat = self.tat_nanos.max(now);
-        let cost = u64::from(permits) * self.quota.emission_interval_nanos();
-        let new_tat = tat.saturating_add(cost);
-        let delay = new_tat - now;
-        Duration::from_nanos(delay.saturating_sub(self.quota.capacity_nanos()))
+        // u128, so a schedule running past the end of the clock's range
+        // reports a long wait instead of a saturated, too-short one.
+        let cost = u128::from(permits) * u128::from(self.quota.emission_interval_nanos());
+        let delay = u128::from(tat - now) + cost;
+        let wait = delay.saturating_sub(u128::from(self.quota.capacity_nanos()));
+        Duration::from_nanos(u64::try_from(wait).unwrap_or(u64::MAX))
     }
 
     fn apply(&mut self, permits: u32, commit: bool) -> Decision {
@@ -190,7 +192,16 @@ impl<C: Clock> Gcra<C> {
             };
         }
         let cost = u64::from(permits) * self.quota.emission_interval_nanos();
-        let new_tat = tat.saturating_add(cost);
+        let Some(new_tat) = tat.checked_add(cost) else {
+            // The schedule would run past the last representable clock
+            // reading (over 584 years after the clock's epoch). Saturating
+            // here would store the same TAT again and again and admit
+            // everything; refusing is the only answer that keeps the
+            // limit, and no amount of waiting on this clock can change it.
+            return Decision::Deny {
+                retry_after: Duration::MAX,
+            };
+        };
         let delay = new_tat - now;
         if delay <= self.quota.capacity_nanos() {
             if commit {

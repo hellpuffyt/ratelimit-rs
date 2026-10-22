@@ -5,6 +5,39 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `Gcra` admitted every request once its schedule saturated at
+  `u64::MAX` nanoseconds; it now refuses (`retry_after: Duration::MAX`).
+  `next_permit_in` no longer under-reports in that range.
+- `FixedWindow` and `SlidingWindow` reset their counters when the clock
+  stepped back into an earlier window, granting a fresh budget; such a
+  reading is now ignored.
+- `SlidingWindow::retry_after` wrapped (0 ns in release builds) for
+  periods near `u64::MAX`; it now saturates.
+- `ManualClock::set_nanos` stored a backwards value before panicking.
+
+### Added
+
+- `tests/properties.rs`: reference-model property tests, exact
+  `retry_after` checks, backwards-clock and extreme-value tests.
+- `tests/keyed.rs`: per-key budgets, eviction safety, `Shared<Keyed>`
+  across 8 threads.
+- `SECURITY.md`, `.editorconfig`, `docs/PRODUCTION_READINESS.md`.
+
+### Changed
+
+- README: install from the git repository. The crates.io name
+  `ratelimit-rs` belongs to an unrelated crate, so the previous
+  `ratelimit-rs = "0.1"` line fetched someone else's code; the crates.io
+  badge and docs.rs link (also for that crate) are removed.
+- Documentation: the comparison table now matches the tests (the sliding
+  window's worst case is `2 * count` for an aimed burst, and window
+  limiter state is 12/16 bytes as measured), and the README states test
+  counts as commands rather than quoted output.
+
 ## [0.1.0] - 2026-09-01
 
 ### Added
