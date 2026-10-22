@@ -1,14 +1,19 @@
 # ratelimit-rs
 
 [![CI](https://github.com/hellpuffyt/ratelimit-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/hellpuffyt/ratelimit-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/ratelimit-rs.svg)](https://crates.io/crates/ratelimit-rs)
 
 Four rate limiters — token bucket, GCRA, sliding window and fixed window — sharing one `Quota` type and one injectable `Clock`, with no runtime dependencies.
 
+This crate is **not published on crates.io** — the name `ratelimit-rs`
+there belongs to an unrelated project, so `ratelimit-rs = "0.1"` would
+fetch someone else's code. Depend on this repository directly:
+
 ```toml
 [dependencies]
-ratelimit-rs = "0.1"
+ratelimit-rs = { git = "https://github.com/hellpuffyt/ratelimit-rs" }
 ```
+
+The library is imported as `ratelimit`.
 
 ```rust
 use std::time::Duration;

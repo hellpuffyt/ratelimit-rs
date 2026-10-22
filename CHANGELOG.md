@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- README: install from the git repository. The crates.io name
+  `ratelimit-rs` belongs to an unrelated crate, so the previous
+  `ratelimit-rs = "0.1"` line fetched someone else's code; the crates.io
+  badge and docs.rs link (also for that crate) are removed.
 - Documentation: the comparison table now matches the tests (the sliding
   window's worst case is `2 * count` for an aimed burst, and window
   limiter state is 12/16 bytes as measured), and the README states test
