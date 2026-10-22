@@ -200,11 +200,24 @@ impl ManualClock {
     /// allowing a test clock to go backwards would let a test assert
     /// behaviour no real clock can produce.
     pub fn set_nanos(&self, nanos: u64) {
-        let previous = self.nanos.swap(nanos, Ordering::SeqCst);
-        assert!(
-            nanos >= previous,
-            "ManualClock::set_nanos({nanos}) would move time backwards from {previous}"
-        );
+        // Check before storing: a panic must leave the clock where it
+        // was, not already moved backwards for whoever catches it.
+        let mut current = self.nanos.load(Ordering::SeqCst);
+        loop {
+            assert!(
+                nanos >= current,
+                "ManualClock::set_nanos({nanos}) would move time backwards from {current}"
+            );
+            match self.nanos.compare_exchange_weak(
+                current,
+                nanos,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => return,
+                Err(observed) => current = observed,
+            }
+        }
     }
 }
 

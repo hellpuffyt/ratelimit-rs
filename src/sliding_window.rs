@@ -159,12 +159,16 @@ impl<C: Clock> SlidingWindow<C> {
     /// count. More than one window later, both are stale by definition —
     /// nothing in them is inside the trailing window any more — so both
     /// clear.
+    ///
+    /// A reading from an *earlier* window (a clock that went backwards)
+    /// never rolls: clearing the counters there would hand out a fresh
+    /// budget for time that has already been spent.
     fn roll(&mut self) {
         let index = self.clock.now_nanos() / self.quota.period_nanos();
-        if index == self.window_index {
+        if index <= self.window_index {
             return;
         }
-        if index == self.window_index + 1 {
+        if index - self.window_index == 1 {
             self.previous = self.current;
         } else {
             self.previous = 0;
@@ -174,8 +178,20 @@ impl<C: Clock> SlidingWindow<C> {
     }
 
     /// How far into the current window the clock is.
+    ///
+    /// When the clock has gone backwards into an earlier window, the
+    /// answer is zero: the start of the window the counters belong to,
+    /// where the previous window weighs the most. That is the most
+    /// conservative reading available, so a backwards clock can only
+    /// make this limiter stricter, never looser.
     fn offset(&self) -> u64 {
-        self.clock.now_nanos() % self.quota.period_nanos()
+        let now = self.clock.now_nanos();
+        let period = self.quota.period_nanos();
+        if now / period < self.window_index {
+            0
+        } else {
+            now % period
+        }
     }
 
     /// The weighted share of the previous window still inside the
@@ -232,8 +248,14 @@ impl<C: Clock> SlidingWindow<C> {
             // Not even the boundary is enough on its own: wait for it,
             // and then for this window's count — which becomes the
             // *previous* count there — to age out in turn.
+            // Saturating: with a period near `u64::MAX` the sum can exceed
+            // the clock's range, and wrapping would advertise a tiny wait.
             let room = limit - permits;
-            (period - offset) + Self::offset_when_weight_fits(self.current, period, room)
+            (period - offset).saturating_add(Self::offset_when_weight_fits(
+                self.current,
+                period,
+                room,
+            ))
         };
         Duration::from_nanos(nanos)
     }
