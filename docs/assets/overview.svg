@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="t d">
+  <title id="t">ratelimit-rs structure</title>
+  <desc id="d">A Quota (count per period, with a burst) and a Clock (SystemClock in production, ManualClock in tests) configure any of four limiters: TokenBucket, Gcra, SlidingWindow and FixedWindow. All implement the RateLimiter trait, whose try_acquire_n and peek_n return a Decision: Allow with remaining, Deny with an exact retry_after, or Exceeds with capacity. Shared wraps a limiter in a Mutex for use from many threads; Keyed creates one limiter per key and can evict recovered keys with retain_active.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A3AAA6"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="420" fill="#0C0D0D"/>
+
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#A3AAA6" letter-spacing="2">
+    <text x="40" y="38">CONFIGURE</text>
+    <text x="330" y="38">LIMITERS  (impl RateLimiter)</text>
+    <text x="900" y="38">ANSWER</text>
+  </g>
+
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+    <!-- Quota -->
+    <rect x="40" y="56" width="240" height="132" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="56" y="80" font-size="14" fill="#EEEAE2">Quota</text>
+    <text x="56" y="104" font-size="11" fill="#A3AAA6">Quota::new(count, period)</text>
+    <text x="56" y="120" font-size="11" fill="#A3AAA6">per_second · per_minute</text>
+    <text x="56" y="136" font-size="11" fill="#A3AAA6">.with_burst(n)</text>
+    <text x="56" y="160" font-size="11" fill="#A3AAA6">invalid → QuotaError</text>
+    <text x="56" y="176" font-size="11" fill="#A3AAA6">emission_interval()</text>
+
+    <!-- Clock -->
+    <rect x="40" y="212" width="240" height="132" rx="6" fill="#17191A" stroke="#3FBF8A"/>
+    <text x="56" y="236" font-size="14" fill="#EEEAE2">trait Clock</text>
+    <text x="56" y="256" font-size="11" fill="#A3AAA6">fn now_nanos(&amp;self) -&gt; u64</text>
+    <text x="56" y="282" font-size="12" fill="#EEEAE2">SystemClock</text>
+    <text x="170" y="282" font-size="11" fill="#A3AAA6">production</text>
+    <text x="56" y="302" font-size="12" fill="#EEEAE2">ManualClock</text>
+    <text x="170" y="302" font-size="11" fill="#A3AAA6">.advance(d)</text>
+    <text x="56" y="326" font-size="11" fill="#A3AAA6">also &amp;C · Arc&lt;C&gt; · Box&lt;C&gt;</text>
+
+    <!-- limiters -->
+    <rect x="330" y="56" width="250" height="68" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="346" y="80" font-size="14" fill="#EEEAE2">TokenBucket&lt;C&gt;</text>
+    <text x="346" y="100" font-size="11" fill="#A3AAA6">credit in ns · 16 B state</text>
+    <text x="346" y="115" font-size="11" fill="#A3AAA6">burst tunable</text>
+
+    <rect x="600" y="56" width="250" height="68" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="616" y="80" font-size="14" fill="#EEEAE2">Gcra&lt;C&gt;</text>
+    <text x="616" y="100" font-size="11" fill="#A3AAA6">one TAT u64 · 8 B state</text>
+    <text x="616" y="115" font-size="11" fill="#A3AAA6">next_permit_in()</text>
+
+    <rect x="330" y="140" width="250" height="68" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="346" y="164" font-size="14" fill="#EEEAE2">SlidingWindow&lt;C&gt;</text>
+    <text x="346" y="184" font-size="11" fill="#A3AAA6">weighted previous window</text>
+    <text x="346" y="199" font-size="11" fill="#A3AAA6">errs toward refusing</text>
+
+    <rect x="600" y="140" width="250" height="68" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="616" y="164" font-size="14" fill="#EEEAE2">FixedWindow&lt;C&gt;</text>
+    <text x="616" y="184" font-size="11" fill="#A3AAA6">counter per aligned window</text>
+    <text x="616" y="199" font-size="11" fill="#A3AAA6">2 × count across a boundary</text>
+
+    <!-- trait -->
+    <rect x="330" y="226" width="520" height="58" rx="6" fill="none" stroke="#2A2E2D" stroke-dasharray="4 3"/>
+    <text x="346" y="250" font-size="12" fill="#EEEAE2">trait RateLimiter</text>
+    <text x="346" y="270" font-size="11" fill="#A3AAA6">try_acquire[_n] · peek[_n] · available · is_idle · reset · quota</text>
+
+    <!-- wrappers -->
+    <rect x="330" y="304" width="250" height="88" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="346" y="328" font-size="14" fill="#EEEAE2">Shared&lt;L&gt;</text>
+    <text x="346" y="348" font-size="11" fill="#A3AAA6">Mutex; methods take &amp;self</text>
+    <text x="346" y="364" font-size="11" fill="#A3AAA6">.with(|l| ...) for batches</text>
+    <text x="346" y="380" font-size="11" fill="#A3AAA6">and for Keyed</text>
+
+    <rect x="600" y="304" width="250" height="88" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="616" y="328" font-size="14" fill="#EEEAE2">Keyed&lt;K, L, C&gt;</text>
+    <text x="616" y="348" font-size="11" fill="#A3AAA6">one limiter per key</text>
+    <text x="616" y="364" font-size="11" fill="#A3AAA6">L: FromQuota&lt;C&gt;</text>
+    <text x="616" y="380" font-size="11" fill="#A3AAA6">retain_active() evicts idle</text>
+
+    <!-- Decision -->
+    <rect x="900" y="56" width="260" height="228" rx="6" fill="#17191A" stroke="#2A2E2D"/>
+    <text x="916" y="80" font-size="14" fill="#EEEAE2">enum Decision</text>
+    <text x="916" y="112" font-size="12" fill="#3FBF8A">Allow</text>
+    <text x="916" y="130" font-size="11" fill="#A3AAA6">{ remaining: u32 }</text>
+    <text x="916" y="162" font-size="12" fill="#EEEAE2">Deny</text>
+    <text x="916" y="180" font-size="11" fill="#A3AAA6">{ retry_after: Duration }</text>
+    <text x="916" y="196" font-size="11" fill="#A3AAA6">exact, not rounded</text>
+    <text x="916" y="228" font-size="12" fill="#EEEAE2">Exceeds</text>
+    <text x="916" y="246" font-size="11" fill="#A3AAA6">{ capacity: u32 }</text>
+    <text x="916" y="262" font-size="11" fill="#A3AAA6">no wait would help</text>
+
+    <rect x="900" y="304" width="260" height="88" rx="6" fill="none" stroke="#2A2E2D" stroke-dasharray="4 3"/>
+    <text x="916" y="328" font-size="12" fill="#EEEAE2">tests drive ManualClock</text>
+    <text x="916" y="348" font-size="11" fill="#A3AAA6">boundaries to 1 ns</text>
+    <text x="916" y="364" font-size="11" fill="#A3AAA6">TokenBucket ≡ Gcra decisions</text>
+    <text x="916" y="380" font-size="11" fill="#A3AAA6">tests/comparison.rs</text>
+  </g>
+
+  <g stroke="#A3AAA6" stroke-width="1.4" fill="none">
+    <path d="M280 122 L310 122 L310 90 L328 90" marker-end="url(#a)"/>
+    <path d="M280 278 L310 278 L310 174 L328 174" marker-end="url(#a)"/>
+    <line x1="310" y1="122" x2="310" y2="174"/>
+    <line x1="850" y1="255" x2="898" y2="255" marker-end="url(#a)"/>
+    <line x1="455" y1="284" x2="455" y2="302" marker-end="url(#a)"/>
+    <line x1="725" y1="284" x2="725" y2="302" marker-end="url(#a)"/>
+    <line x1="455" y1="208" x2="455" y2="224" marker-end="url(#a)"/>
+    <line x1="725" y1="208" x2="725" y2="224" marker-end="url(#a)"/>
+  </g>
+</svg>
